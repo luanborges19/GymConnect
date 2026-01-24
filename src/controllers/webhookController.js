@@ -21,6 +21,14 @@ const {
 } = require('../config/database');
 
 /**
+ * Valida o token de verificação
+ */
+function validateVerifyToken(token) {
+  const verifyToken = process.env.VERIFY_TOKEN || 'gymconnect_verify';
+  return token === verifyToken;
+}
+
+/**
  * Processa webhook do Instagram (ManyChat)
  */
 async function handleInstagramWebhook(req, res) {
@@ -167,6 +175,96 @@ async function handleWhatsAppWebhook(req, res) {
 }
 
 /**
+ * Verifica webhook do Instagram/Facebook (Meta)
+ * Usado durante a configuração do webhook
+ * 
+ * Meta envia GET com query params:
+ * - hub.mode=subscribe
+ * - hub.verify_token=<token>
+ * - hub.challenge=<challenge_string>
+ * 
+ * Deve retornar hub.challenge como string se token válido
+ */
+function verifyInstagramWebhook(req, res) {
+  try {
+    // Log para debug
+    console.log('🔍 Verificação Instagram - Query params:', req.query);
+    console.log('🔍 Verificação Instagram - Headers:', req.headers);
+    
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+
+    console.log(`📋 Mode: ${mode}, Token recebido: ${token}, Challenge: ${challenge}`);
+
+    const verifyToken = process.env.VERIFY_TOKEN || 'gymconnect_verify';
+    console.log(`🔑 Token esperado: ${verifyToken}`);
+
+    // Validação conforme especificação do Meta
+    if (mode === 'subscribe' && token && token === verifyToken && challenge) {
+      console.log('✅ Webhook Instagram verificado com sucesso');
+      // Retorna o challenge como string pura (não JSON) - OBRIGATÓRIO
+      res.status(200).send(String(challenge));
+    } else {
+      console.log('❌ Falha na verificação do webhook Instagram');
+      console.log(`   Mode correto? ${mode === 'subscribe'}`);
+      console.log(`   Token presente? ${!!token}`);
+      console.log(`   Token correto? ${token === verifyToken}`);
+      console.log(`   Challenge presente? ${!!challenge}`);
+      res.sendStatus(403);
+    }
+  } catch (error) {
+    console.error('❌ Erro ao verificar webhook Instagram:', error);
+    res.sendStatus(500);
+  }
+}
+
+/**
+ * Verifica webhook do WhatsApp (Meta)
+ * Usado durante a configuração do webhook
+ * 
+ * Meta envia GET com query params:
+ * - hub.mode=subscribe
+ * - hub.verify_token=<token>
+ * - hub.challenge=<challenge_string>
+ * 
+ * Deve retornar hub.challenge como string se token válido
+ */
+function verifyWhatsAppWebhook(req, res) {
+  try {
+    // Log para debug
+    console.log('🔍 Verificação WhatsApp - Query params:', req.query);
+    console.log('🔍 Verificação WhatsApp - Headers:', req.headers);
+    
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+
+    console.log(`📋 Mode: ${mode}, Token recebido: ${token}, Challenge: ${challenge}`);
+
+    const verifyToken = process.env.VERIFY_TOKEN || 'gymconnect_verify';
+    console.log(`🔑 Token esperado: ${verifyToken}`);
+
+    // Validação conforme especificação do Meta
+    if (mode === 'subscribe' && token && token === verifyToken && challenge) {
+      console.log('✅ Webhook WhatsApp verificado com sucesso');
+      // Retorna o challenge como string pura (não JSON) - OBRIGATÓRIO
+      res.status(200).send(String(challenge));
+    } else {
+      console.log('❌ Falha na verificação do webhook WhatsApp');
+      console.log(`   Mode correto? ${mode === 'subscribe'}`);
+      console.log(`   Token presente? ${!!token}`);
+      console.log(`   Token correto? ${token === verifyToken}`);
+      console.log(`   Challenge presente? ${!!challenge}`);
+      res.sendStatus(403);
+    }
+  } catch (error) {
+    console.error('❌ Erro ao verificar webhook WhatsApp:', error);
+    res.sendStatus(500);
+  }
+}
+
+/**
  * Endpoint de teste para verificar configuração
  */
 async function testWebhook(req, res) {
@@ -180,5 +278,7 @@ async function testWebhook(req, res) {
 module.exports = {
   handleInstagramWebhook,
   handleWhatsAppWebhook,
+  verifyInstagramWebhook,
+  verifyWhatsAppWebhook,
   testWebhook
 };

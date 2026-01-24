@@ -18,7 +18,29 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Rotas
+// Rota raiz
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'GymConnect API - Webhook Service',
+    status: 'online',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      webhook: {
+        whatsapp: {
+          get: '/webhook/whatsapp',
+          post: '/webhook/whatsapp'
+        },
+        instagram: {
+          get: '/webhook/instagram',
+          post: '/webhook/instagram'
+        }
+      },
+      health: '/health'
+    }
+  });
+});
+
+// Rotas de webhook
 app.use('/webhook', webhookRoutes);
 
 // Rota de health check
@@ -35,8 +57,10 @@ initializeDatabase()
     app.listen(PORT, () => {
       console.log(`🚀 Servidor rodando na porta ${PORT}`);
       console.log(`📡 Endpoints disponíveis:`);
-      console.log(`   - POST /webhook/whatsapp`);
+      console.log(`   - GET /webhook/instagram (verificação)`);
       console.log(`   - POST /webhook/instagram`);
+      console.log(`   - GET /webhook/whatsapp (verificação)`);
+      console.log(`   - POST /webhook/whatsapp`);
       console.log(`   - GET /webhook/test/:platform`);
       console.log(`   - GET /health`);
     });
