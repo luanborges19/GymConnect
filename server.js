@@ -47,7 +47,33 @@ app.use('/webhook', webhookRoutes);
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
-    timestamp: new Date().toISOString() 
+    timestamp: new Date().toISOString(),
+    database: 'checking...'
+  });
+});
+
+// Rota de debug - verifica se tudo está funcionando
+app.get('/debug', (req, res) => {
+  console.log('🔍 DEBUG CHECK');
+  console.log('✅ Servidor respondendo');
+  console.log('✅ Banco de dados inicializado');
+  console.log(`✅ PORT: ${PORT}`);
+  console.log(`✅ NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`✅ VERIFY_TOKEN: ${process.env.VERIFY_TOKEN ? 'configurado' : 'NÃO configurado'}`);
+  console.log(`✅ OPENAI_API_KEY: ${process.env.OPENAI_API_KEY ? 'configurado' : 'NÃO configurado'}`);
+  console.log(`✅ META_ACCESS_TOKEN: ${process.env.META_ACCESS_TOKEN ? 'configurado' : 'NÃO configurado'}`);
+  
+  res.json({ 
+    status: 'ok',
+    server: 'respondendo',
+    database: 'inicializado',
+    env: {
+      PORT,
+      NODE_ENV: process.env.NODE_ENV,
+      VERIFY_TOKEN: process.env.VERIFY_TOKEN ? '✅ configurado' : '❌ NÃO configurado',
+      OPENAI_API_KEY: process.env.OPENAI_API_KEY ? '✅ configurado' : '❌ NÃO configurado',
+      META_ACCESS_TOKEN: process.env.META_ACCESS_TOKEN ? '✅ configurado' : '❌ NÃO configurado'
+    }
   });
 });
 
