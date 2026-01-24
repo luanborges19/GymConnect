@@ -7,6 +7,7 @@
 require('dotenv').config({ path: './src/.env' });
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { initializeDatabase } = require('./src/config/database');
 const webhookRoutes = require('./src/routes/index');
 
@@ -17,6 +18,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static('public'));  // Servir arquivos estáticos (privacy-policy.html, etc)
 
 // Rota raiz
 app.get('/', (req, res) => {
