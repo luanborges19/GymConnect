@@ -93,6 +93,47 @@ async function sendViaTwilio(phoneNumber, message) {
 }
 
 /**
+ * Envia mensagem via Meta/WhatsApp Cloud API
+ */
+async function sendViaMeta(phoneNumber, message) {
+  const accessToken = process.env.META_ACCESS_TOKEN;
+  const phoneNumberId = process.env.META_PHONE_NUMBER_ID;
+
+  if (!accessToken || !phoneNumberId) {
+    throw new Error('META_ACCESS_TOKEN ou META_PHONE_NUMBER_ID não configurados');
+  }
+
+  const normalizedPhone = phoneNumber.replace(/\D/g, '');
+
+  try {
+    const response = await axios.post(
+      `https://graph.instagram.com/v18.0/${phoneNumberId}/messages`,
+      {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: normalizedPhone,
+        type: 'text',
+        text: {
+          preview_url: false,
+          body: message
+        }
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error('Erro ao enviar via Meta/WhatsApp:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+/**
  * Envia mensagem via WhatsApp usando o provedor configurado
  */
 async function sendWhatsAppMessage(phoneNumber, message) {
@@ -100,6 +141,10 @@ async function sendWhatsAppMessage(phoneNumber, message) {
   const normalizedPhone = phoneNumber.replace(/\D/g, '');
 
   switch (WHATSAPP_PROVIDER.toLowerCase()) {
+    case 'meta':
+    case 'whatsapp':
+      return await sendViaMeta(normalizedPhone, message);
+
     case 'zapi':
       return await sendViaZAPI(normalizedPhone, message);
     
@@ -171,5 +216,6 @@ function normalizeWhatsAppPayload(payload) {
 
 module.exports = {
   sendWhatsAppMessage,
-  normalizeWhatsAppPayload
+  normalizeWhatsAppPayload,
+  sendViaMeta
 };
