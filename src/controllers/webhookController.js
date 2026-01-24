@@ -98,79 +98,159 @@ async function handleInstagramWebhook(req, res) {
 }
 
 /**
- * Processa webhook do WhatsApp
+ * Processa webhook do WhatsApp Cloud API (Meta)
+ * 
+ * Espera payload no formato:
+ * {
+ *   "entry": [{
+ *     "changes": [{
+ *       "value": {
+ *         "messages": [{
+ *           "from": "5511999999999",
+ *           "text": { "body": "Mensagem aqui" }
+ *         }]
+ *       }
+ *     }]
+ *   }]
+ * }
+ * 
+ * Também ignora status updates e notificações sem messages
  */
 async function handleWhatsAppWebhook(req, res) {
+  // IMPORTANTE: Retorna 200 OK IMEDIATAMENTE para evitar retry do Meta
+  // Processamento continua em background
+  res.status(200).json({ success: true });
+
   try {
     const payload = req.body;
 
-    // Normaliza payload (suporta Z-API, WATI, Twilio)
-    const normalized = whatsappService.normalizeWhatsAppPayload(payload);
+    // ═══════════════════════════════════════════════════════════
+    // PASSO 1: Loga o payload bruto completo para debug
+    // Visualizar em: Render Dashboard → seu serviço → Logs
+    // ═══════════════════════════════════════════════════════════
+    console.log('\n' + '='.repeat(70));
+    console.log('📨 WEBHOOK WHATSAPP - PAYLOAD BRUTO RECEBIDO:');
+    console.log('='.repeat(70));
+    console.log(JSON.stringify(payload, null, 2));
+    console.log('='.repeat(70) + '\n');
 
-    // Valida se tem mensagem
-    if (!normalized.message || normalized.message.trim() === '') {
-      return res.status(400).json({ error: 'Mensagem vazia' });
+    // ═══════════════════════════════════════════════════════════
+    // PASSO 2: Valida estrutura básica do Meta
+    // ═══════════════════════════════════════════════════════════
+    if (!payload.entry || !Array.isArray(payload.entry) || payload.entry.length === 0) {
+      console.log('⚠️  Payload sem entry array - ignorando');
+      return;
     }
 
-    console.log(`📱 WhatsApp - Mensagem recebida de ${normalized.userName || normalized.phone}: ${normalized.message}`);
+    const entry = payload.entry[0];
+    if (!entry.changes || !Array.isArray(entry.changes) || entry.changes.length === 0) {
+      console.log('⚠️  Entry sem changes array - ignorando');
+      return;
+    }
 
-    // Salva/atualiza lead
+    const change = entry.changes[0];
+    const value = change.value;
+
+    // ═══════════════════════════════════════════════════════════
+    // PASSO 3: Verifica se é uma mensagem ou apenas status
+    // ═══════════════════════════════════════════════════════════
+    if (!value.messages || !Array.isArray(value.messages) || value.messages.length === 0) {
+      // Pode ser um status update (delivery, read, etc) - ignorar
+      console.log('📊 Evento recebido é status/notificação, não mensagem - ignorando');
+      console.log(`   Tipo: ${value.statuses ? 'status update' : 'outro evento'}`);
+      return;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // PASSO 4: Extrai dados da mensagem
+    // ═══════════════════════════════════════════════════════════
+    const message = value.messages[0];
+    const from = message.from; // ex: "5511999999999"
+    const messageText = message.text?.body; // ex: "Olá"
+
+    console.log(`📱 Mensagem extraída:`);
+    console.log(`   De: ${from}`);
+    console.log(`   Texto: ${messageText}`);
+
+    // ═══════════════════════════════════════════════════════════
+    // PASSO 5: Valida se tem texto
+    // ═══════════════════════════════════════════════════════════
+    if (!messageText || messageText.trim() === '') {
+      console.log('⚠️  Mensagem vazia ou sem texto body - ignorando');
+      return;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // PASSO 6: Salva/atualiza lead
+    // ═══════════════════════════════════════════════════════════
+    console.log('💾 Salvando lead...');
     await saveLead(
-      normalized.platform,
-      normalized.userId,
-      normalized.userName,
-      normalized.phone
+      'whatsapp',           // platform
+      from,                 // userId
+      null,                 // userName (não vem na Cloud API)
+      from                  // phone
     );
+    console.log('✅ Lead salvo');
 
-    // Busca histórico de conversas
-    const history = await getConversationHistory(normalized.platform, normalized.userId, 5);
+    // ═══════════════════════════════════════════════════════════
+    // PASSO 7: Busca histórico de conversas
+    // ═══════════════════════════════════════════════════════════
+    console.log('📋 Buscando histórico de conversas...');
+    const history = await getConversationHistory('whatsapp', from, 5);
+    console.log(`✅ Histórico carregado (${history.length} mensagens)`);
 
-    // Gera resposta com IA
+    // ═══════════════════════════════════════════════════════════
+    // PASSO 8: Gera resposta com IA
+    // ═══════════════════════════════════════════════════════════
+    console.log('🤖 Enviando para IA...');
     const aiResponse = await openaiService.generateResponse(
-      normalized.message,
+      messageText,
       history
     );
-
     const formattedResponse = openaiService.formatResponse(aiResponse.response);
+    console.log(`✅ Resposta IA gerada:`);
+    console.log(`   ${formattedResponse.substring(0, 100)}...`);
 
-    // Salva conversa no banco
+    // ═══════════════════════════════════════════════════════════
+    // PASSO 9: Salva conversa no banco de dados
+    // ═══════════════════════════════════════════════════════════
+    console.log('💾 Salvando conversa...');
     await saveConversation(
-      normalized.platform,
-      normalized.userId,
+      'whatsapp',
+      from,
       'user',
-      normalized.message,
+      messageText,
       formattedResponse,
       aiResponse.transferredToHuman
     );
+    console.log('✅ Conversa salva');
 
-    console.log(`🤖 Resposta gerada: ${formattedResponse.substring(0, 50)}...`);
-
-    // Envia resposta via WhatsApp (apenas se tiver número de telefone)
-    if (normalized.phone) {
-      try {
-        await whatsappService.sendWhatsAppMessage(normalized.phone, formattedResponse);
-        console.log(`✅ Mensagem enviada via WhatsApp para ${normalized.phone}`);
-      } catch (sendError) {
-        console.error('Erro ao enviar mensagem WhatsApp:', sendError);
-        // Continua mesmo se falhar o envio (a resposta já foi salva)
-      }
-    } else {
-      console.log('ℹ️  Teste sem número de telefone - resposta não enviada via WhatsApp');
+    // ═══════════════════════════════════════════════════════════
+    // PASSO 10: Envia resposta via Meta/WhatsApp Cloud API
+    // ═══════════════════════════════════════════════════════════
+    try {
+      console.log(`📤 Enviando resposta via WhatsApp para ${from}...`);
+      await whatsappService.sendWhatsAppMessage(from, formattedResponse);
+      console.log(`✅ Resposta enviada com sucesso para ${from}`);
+    } catch (sendError) {
+      console.error(`❌ Erro ao enviar resposta WhatsApp para ${from}:`, sendError.message);
+      // Continua mesmo se falhar (resposta já foi salva no banco)
     }
 
-    // Retorna confirmação
-    res.json({ 
-      success: true, 
-      message: 'Mensagem processada e resposta enviada',
-      response: formattedResponse
-    });
+    console.log('\n' + '='.repeat(70));
+    console.log('✅ WEBHOOK PROCESSADO COM SUCESSO');
+    console.log('='.repeat(70) + '\n');
 
   } catch (error) {
-    console.error('Erro ao processar webhook WhatsApp:', error);
-    res.status(500).json({ 
-      error: 'Erro ao processar mensagem',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    console.error('\n' + '='.repeat(70));
+    console.error('❌ ERRO AO PROCESSAR WEBHOOK WHATSAPP:');
+    console.error('='.repeat(70));
+    console.error('Erro:', error.message);
+    console.error('Stack:', error.stack);
+    console.error('='.repeat(70) + '\n');
+    
+    // Não retorna erro para o Meta (já retornou 200 OK acima)
+    // Apenas loga para debug
   }
 }
 
