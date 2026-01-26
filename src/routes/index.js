@@ -8,6 +8,7 @@ const express = require('express');
 const router = express.Router();
 const webhookController = require('../controllers/webhookController');
 
+
 /**
  * Middleware para validar token de verificação
  * Valida o token enviado pelo Facebook/Meta no formato hub.verify_token
