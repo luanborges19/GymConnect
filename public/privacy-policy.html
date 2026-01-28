@@ -45,7 +45,7 @@
 <body>
     <div class="container">
         <h1>Política de Privacidade - GymConnect</h1>
-        <p class="last-updated">Última atualização: 24 de janeiro de 2026</p>
+        <p class="last-updated">Última atualização: 28 de janeiro de 2026</p>
 
         <h2>1. Introdução</h2>
         <p>
@@ -55,23 +55,56 @@
         </p>
 
         <h2>2. Informações que Coletamos</h2>
-        <p>Coletamos os seguintes tipos de informações:</p>
+        <p>Coletamos os seguintes tipos de informações através de nossos serviços de chatbot:</p>
         <ul>
-            <li><strong>Número de telefone:</strong> Para identificar e comunicar com você via WhatsApp</li>
-            <li><strong>Mensagens:</strong> O conteúdo das mensagens que você envia ao chatbot</li>
-            <li><strong>Metadados:</strong> Timestamp das mensagens e identificadores de conversa</li>
-            <li><strong>Nome (opcional):</strong> Se fornecido pelo Meta WhatsApp Business API</li>
+            <li><strong>WhatsApp:</strong>
+                <ul>
+                    <li>Número de telefone para identificação e comunicação</li>
+                    <li>Conteúdo das mensagens enviadas ao chatbot</li>
+                    <li>Nome (se fornecido pelo Meta WhatsApp Business API)</li>
+                </ul>
+            </li>
+            <li><strong>Instagram:</strong>
+                <ul>
+                    <li>ID do usuário Instagram para identificação</li>
+                    <li>Conteúdo das mensagens diretas enviadas</li>
+                    <li>Nome de usuário (se disponível via Meta Instagram API)</li>
+                </ul>
+            </li>
+            <li><strong>Dados técnicos:</strong>
+                <ul>
+                    <li>Timestamp das mensagens</li>
+                    <li>Identificadores de conversa</li>
+                    <li>Metadados de webhook fornecidos pela Meta</li>
+                </ul>
+            </li>
         </ul>
 
         <h2>3. Como Usamos Seus Dados</h2>
         <p>Utilizamos as informações coletadas para:</p>
         <ul>
-            <li>Responder suas mensagens via WhatsApp</li>
+            <li>Responder suas mensagens via WhatsApp e Instagram</li>
             <li>Fornecer informações sobre Academia Lucas Rogrigues</li>
-            <li>Melhorar nossos serviços e chatbot</li>
-            <li>Manter um histórico de conversas para melhor atendimento</li>
-            <li>Análise e estatísticas de uso (dados agregados)</li>
+            <li>Processar solicitações de agendamento e informações</li>
+            <li>Melhorar nossos serviços de chatbot e atendimento</li>
+            <li>Manter um histórico de conversas para melhor atendimento personalizado</li>
+            <li>Análise e estatísticas de uso (dados agregados e anonimizados)</li>
+            <li>Cumprir obrigações legais e regulamentares</li>
         </ul>
+
+        <h2>3.1. Webhooks e Integração com Meta</h2>
+        <p>
+            Nosso sistema utiliza webhooks oficiais da Meta (Facebook, Inc.) para receber e processar 
+            mensagens do WhatsApp e Instagram. Os webhooks estão configurados nos seguintes endpoints:
+        </p>
+        <ul>
+            <li><strong>WhatsApp:</strong> https://gymconnect-api.onrender.com/webhook/whatsapp</li>
+            <li><strong>Instagram:</strong> https://gymconnect-api.onrender.com/webhook/instagram</li>
+        </ul>
+        <p>
+            Estes webhooks são seguros e utilizam tokens de verificação para garantir que apenas 
+            a Meta possa enviar dados para nossos sistemas.
+        </p>
 
         <h2>4. Base Legal para Processamento</h2>
         <p>
@@ -81,9 +114,17 @@
 
         <h2>5. Compartilhamento de Dados</h2>
         <p>
-            Seus dados são processados exclusivamente por nós e pela Meta (Facebook, Inc.) para fornecer 
-            o serviço WhatsApp. Não compartilhamos seus dados com terceiros sem seu consentimento, exceto 
-            quando exigido por lei.
+            Seus dados são processados exclusivamente por nós e pela Meta (Facebook, Inc.) através 
+            das seguintes APIs e serviços:
+        </p>
+        <ul>
+            <li><strong>Meta WhatsApp Business API:</strong> Para receber e enviar mensagens WhatsApp</li>
+            <li><strong>Meta Instagram Basic Display API:</strong> Para receber e responder mensagens Instagram</li>
+            <li><strong>OpenAI API:</strong> Para processamento de linguagem natural e geração de respostas (dados anonimizados)</li>
+        </ul>
+        <p>
+            Não compartilhamos seus dados pessoais com terceiros para fins comerciais sem seu 
+            consentimento explícito, exceto quando exigido por lei ou para cumprir obrigações legais.
         </p>
 
         <h2>6. Segurança dos Dados</h2>
@@ -99,26 +140,45 @@
         </p>
 
         <h2>8. Seus Direitos</h2>
-        <p>Você tem direito a:</p>
+        <p>De acordo com a LGPD e regulamentações de privacidade, você tem direito a:</p>
         <ul>
-            <li>Acessar seus dados pessoais</li>
-            <li>Corrigir dados incorretos</li>
-            <li>Solicitar exclusão de seus dados</li>
+            <li>Acessar seus dados pessoais armazenados</li>
+            <li>Corrigir dados incorretos ou desatualizados</li>
+            <li>Solicitar exclusão completa de seus dados</li>
             <li>Opor-se ao processamento de seus dados</li>
             <li>Solicitar a portabilidade de seus dados</li>
+            <li>Revogar consentimento a qualquer momento</li>
+            <li>Ser informado sobre compartilhamento de dados</li>
         </ul>
         <p>
-            Para exercer qualquer desses direitos, entre em contato conosco pelo WhatsApp ou telefone: 
-            (11) 99999-9999
+            <strong>Para exercer qualquer desses direitos:</strong><br>
+            • Envie mensagem via WhatsApp: (11) 99999-9999<br>
+            • Envie mensagem via Instagram: @academia_lucas_rodrigues<br>
+            • Telefone: (11) 99999-9999<br>
+            • Email: contato@academialucasrodrigues.com.br
+        </p>
+        <p>
+            <strong>Exclusão de dados:</strong> Você pode solicitar a exclusão completa de seus dados 
+            a qualquer momento. Processaremos sua solicitação em até 15 dias úteis.
         </p>
 
         <h2>9. Contato</h2>
         <p>
-            Se tiver perguntas sobre esta Política de Privacidade, entre em contato conosco:<br>
+            Se tiver perguntas sobre esta Política de Privacidade ou quiser exercer seus direitos, 
+            entre em contato conosco:
+        </p>
+        <p>
             <strong>Academia Lucas Rogrigues</strong><br>
             Rua Central, 123 - Centro<br>
             Telefone: (11) 99999-9999<br>
-            WhatsApp: (11) 99999-9999
+            WhatsApp: (11) 99999-9999<br>
+            Instagram: @academia_lucas_rodrigues<br>
+            Email: contato@academialucasrodrigues.com.br
+        </p>
+        <p>
+            <strong>Encarregado de Dados (DPO):</strong><br>
+            Para questões específicas sobre proteção de dados, entre em contato através dos 
+            canais acima identificando sua solicitação como "LGPD - Proteção de Dados".
         </p>
 
         <h2>10. Alterações a Esta Política</h2>
