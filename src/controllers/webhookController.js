@@ -29,48 +29,88 @@ function validateVerifyToken(token) {
 }
 
 /**
- * Processa webhook do Instagram (ManyChat)
+ * Processa webhook do Instagram (Meta API)
  */
 async function handleInstagramWebhook(req, res) {
+  // IMPORTANTE: Retorna 200 OK IMEDIATAMENTE para evitar retry do Meta
+  res.status(200).json({ success: true });
+
   try {
     const payload = req.body;
+    const signature = req.headers['x-hub-signature-256'];
 
-    // Valida webhook (opcional)
-    const secret = process.env.MANYCHAT_WEBHOOK_SECRET;
-    if (!instagramService.validateManyChatWebhook(payload, secret)) {
-      return res.status(401).json({ error: 'Webhook não autorizado' });
+    // ═══════════════════════════════════════════════════════════
+    // PASSO 1: Loga o payload bruto completo para debug
+    // ═══════════════════════════════════════════════════════════
+    console.log('\n' + '='.repeat(70));
+    console.log('📸 WEBHOOK INSTAGRAM - PAYLOAD BRUTO RECEBIDO:');
+    console.log('='.repeat(70));
+    console.log(JSON.stringify(payload, null, 2));
+    console.log('='.repeat(70) + '\n');
+
+    // ═══════════════════════════════════════════════════════════
+    // PASSO 2: Valida webhook (opcional)
+    // ═══════════════════════════════════════════════════════════
+    const appSecret = process.env.META_APP_SECRET;
+    if (appSecret && !instagramService.validateMetaWebhook(payload, signature, appSecret)) {
+      console.log('❌ Webhook Instagram não autorizado');
+      return;
     }
 
-    // Normaliza payload
+    // ═══════════════════════════════════════════════════════════
+    // PASSO 3: Normaliza payload
+    // ═══════════════════════════════════════════════════════════
     const normalized = instagramService.normalizeInstagramPayload(payload);
 
-    // Valida se tem mensagem
+    // ═══════════════════════════════════════════════════════════
+    // PASSO 4: Valida se tem mensagem
+    // ═══════════════════════════════════════════════════════════
     if (!normalized.message || normalized.message.trim() === '') {
-      return res.status(400).json({ error: 'Mensagem vazia' });
+      console.log('⚠️  Evento Instagram sem mensagem de texto - ignorando');
+      console.log(`   Tipo: ${payload.entry?.[0]?.messaging?.[0]?.message ? 'mensagem sem texto' : 'outro evento'}`);
+      return;
     }
 
-    console.log(`📱 Instagram - Mensagem recebida de ${normalized.userName || normalized.userId}: ${normalized.message}`);
+    console.log(`📸 Instagram - Mensagem recebida:`);
+    console.log(`   De: ${normalized.userId}`);
+    console.log(`   Nome: ${normalized.userName || 'N/A'}`);
+    console.log(`   Texto: ${normalized.message}`);
 
-    // Salva/atualiza lead
+    // ═══════════════════════════════════════════════════════════
+    // PASSO 5: Salva/atualiza lead
+    // ═══════════════════════════════════════════════════════════
+    console.log('💾 Salvando lead Instagram...');
     await saveLead(
       normalized.platform,
       normalized.userId,
       normalized.userName,
       normalized.phone
     );
+    console.log('✅ Lead Instagram salvo');
 
-    // Busca histórico de conversas
+    // ═══════════════════════════════════════════════════════════
+    // PASSO 6: Busca histórico de conversas
+    // ═══════════════════════════════════════════════════════════
+    console.log('📋 Buscando histórico Instagram...');
     const history = await getConversationHistory(normalized.platform, normalized.userId, 5);
+    console.log(`✅ Histórico Instagram carregado (${history.length} mensagens)`);
 
-    // Gera resposta com IA
+    // ═══════════════════════════════════════════════════════════
+    // PASSO 7: Gera resposta com IA
+    // ═══════════════════════════════════════════════════════════
+    console.log('🤖 Enviando para IA (Instagram)...');
     const aiResponse = await openaiService.generateResponse(
       normalized.message,
       history
     );
-
     const formattedResponse = openaiService.formatResponse(aiResponse.response);
+    console.log(`✅ Resposta IA gerada (Instagram):`);
+    console.log(`   ${formattedResponse.substring(0, 100)}...`);
 
-    // Salva conversa no banco
+    // ═══════════════════════════════════════════════════════════
+    // PASSO 8: Salva conversa no banco de dados
+    // ═══════════════════════════════════════════════════════════
+    console.log('💾 Salvando conversa Instagram...');
     await saveConversation(
       normalized.platform,
       normalized.userId,
@@ -79,21 +119,33 @@ async function handleInstagramWebhook(req, res) {
       formattedResponse,
       aiResponse.transferredToHuman
     );
+    console.log('✅ Conversa Instagram salva');
 
-    console.log(`🤖 Resposta gerada: ${formattedResponse.substring(0, 50)}...`);
+    // ═══════════════════════════════════════════════════════════
+    // PASSO 9: Envia resposta via Instagram API
+    // ═══════════════════════════════════════════════════════════
+    try {
+      console.log(`📤 Enviando resposta Instagram para ${normalized.userId}...`);
+      await instagramService.sendInstagramMessage(normalized.userId, formattedResponse);
+      console.log(`✅ Resposta Instagram enviada com sucesso para ${normalized.userId}`);
+    } catch (sendError) {
+      console.error(`❌ Erro ao enviar resposta Instagram para ${normalized.userId}:`, sendError.message);
+      // Continua mesmo se falhar (resposta já foi salva no banco)
+    }
 
-    // Formata resposta para ManyChat
-    const manyChatResponse = instagramService.formatManyChatResponse(formattedResponse);
-
-    // Retorna resposta formatada para ManyChat
-    res.json(manyChatResponse);
+    console.log('\n' + '='.repeat(70));
+    console.log('✅ WEBHOOK INSTAGRAM PROCESSADO COM SUCESSO');
+    console.log('='.repeat(70) + '\n');
 
   } catch (error) {
-    console.error('Erro ao processar webhook Instagram:', error);
-    res.status(500).json({ 
-      error: 'Erro ao processar mensagem',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    console.error('\n' + '='.repeat(70));
+    console.error('❌ ERRO AO PROCESSAR WEBHOOK INSTAGRAM:');
+    console.error('='.repeat(70));
+    console.error('Erro:', error.message);
+    console.error('Stack:', error.stack);
+    console.error('='.repeat(70) + '\n');
+    
+    // Não retorna erro para o Meta (já retornou 200 OK acima)
   }
 }
 
